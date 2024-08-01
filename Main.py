@@ -44,11 +44,83 @@ async def test_command(interaction: discord.Interaction):
 
 @tree.command(name="new",description="新しいイベントを作成します。")
 @app_commands.describe(
+    name="設定名を選択してください",
     menu="使うシナリオを選択してください 1:ソープスクール 2:その他",
+    style="TRPG仕様を選択してください 1:CoC6版 2:その他",
+    member="HOの数を入力してください (10まで対応)",
+    desc= "説明を入力してください"
 )
-async def new_command(interaction: discord.Interaction, name:str, menu:int):
-    embed = discord.Embed(title=f"{name}",color=0x7fffd4, description=f"")
+async def new_command(interaction: discord.Interaction, name:str, style:int ,menu:int, member:int, desc:str):
+    if style == 1:
+        style = "CoC6版"
+    elif style == 2:
+        style = "その他"
+    else :
+        style = "指定失敗"
+    HO1 = "未設定"
+    embed = discord.Embed(title=f"{name}",color=0x7fffd4, description=f"""# {name} \n## {style} \n### {desc} """)
+    for i in range(1,member+1):
+        embed.add_field(name=f"HO{i}",value="未設定")
     await interaction.response.send_message(embed=embed,ephemeral=False)
+
+@client.event
+async def on_reaction_add(reaction, user):
+    message = reaction.message
+    user_name = user.display_name
+    if message.embeds[0]:
+        embed = message.embeds[0]
+        if reaction.emoji == '1️⃣':
+            for field in embed.fields:
+                if field.name == "HO1":
+                    embed.set_field_at(0, name="HO1", value=user_name)
+            await message.edit(embed=embed)
+        elif reaction.emoji == '2️⃣':
+            for field in embed.fields:
+                if field.name == "HO2":
+                    embed.set_field_at(1, name="HO2", value=user_name)
+            await message.edit(embed=embed)
+        elif reaction.emoji == '3️⃣':
+            for field in embed.fields:
+                if field.name == "HO3":
+                    embed.set_field_at(2, name="HO3", value=user_name)
+            await message.edit(embed=embed)
+        elif reaction.emoji == '4️⃣':
+            for field in embed.fields:
+                if field.name == "HO4":
+                    embed.set_field_at(3, name="HO4", value=user_name)
+            await message.edit(embed=embed)
+        elif reaction.emoji == '5️⃣':
+            for field in embed.fields:
+                if field.name == "HO5":
+                    embed.set_field_at(4, name="HO5", value=user_name)
+            await message.edit(embed=embed)
+        elif reaction.emoji == '6️⃣':
+            for field in embed.fields:
+                if field.name == "HO6":
+                    embed.set_field_at(5, name="HO6", value=user_name)
+            await message.edit(embed=embed)
+        elif reaction.emoji == '7️⃣':
+            for field in embed.fields:
+                if field.name == "HO7":
+                    embed.set_field_at(6, name="HO7", value=user_name)
+            await message.edit(embed=embed)
+        elif reaction.emoji == '8️⃣':
+            for field in embed.fields:
+                if field.name == "HO8":
+                    embed.set_field_at(7, name="HO8", value=user_name)
+            await message.edit(embed=embed)
+        elif reaction.emoji == '9️⃣':
+            for field in embed.fields:
+                if field.name == "HO9":
+                    embed.set_field_at(8, name="HO9", value=user_name)
+            await message.edit(embed=embed)
+        elif reaction.emoji == '🔟':
+            for field in embed.fields:
+                if field.name == "HO10":
+                    embed.set_field_at(9, name="HO10", value=user_name)
+            await message.edit(embed=embed)
+        
+        
 
 # botの停止に関する動作
 @tree.command(name="kill",description="Botを停止します")
