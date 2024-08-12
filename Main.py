@@ -1,6 +1,7 @@
 # 外部プログラムのインポート
 import discord
 from discord import app_commands
+import asyncio
 import re
 import sys
 import random
@@ -31,7 +32,7 @@ client = discord.Client(intents=discord.Intents.all())
 tree = app_commands.CommandTree(client)
 @client.event
 async def on_ready():
-    print("起動完了")
+    print("GetReady")
     await tree.sync()#スラッシュコマンドを同期
 
 def generate_random_color():
@@ -43,6 +44,32 @@ def generate_random_color():
 def lowercase_english_words(text):
   return re.sub(r'\b[a-zA-Z]+\b', lambda m: m.group(0).lower(), text)
 
+async def find_channel_link(guild, name, exclude_categories):
+    for category in guild.categories:
+        if category.name not in exclude_categories:
+            for channel in category.channels:
+                if channel.name == name:
+                    return channel.mention
+    return None
+
+async def find_channel_in_category(guild, category_name, channel_name):
+    for category in guild.categories:
+        if category.name == category_name:
+            for channel in category.channels:
+                if channel.name == channel_name:
+                    return channel
+    return None
+
+async def delete_channels_containing(guild, name_id, exclude_categories):
+    try:
+        for category in guild.categories:
+            if category.name not in exclude_categories:
+                for channel in category.channels:
+                    if name_id in channel.name:
+                        await channel.delete()
+    except:
+        return
+
 
 #サーバー追加時に秘匿用チャンネルとボット処理用チャンネル、
 @client.event
@@ -51,6 +78,13 @@ async def on_guild_join(guild):
     botting = await guild.create_category_channel(name="TRPGbot処理用")
     trpg = await guild.create_category_channel(name="TRPGシナリオ")
     trpg_text = await trpg.create_text_channel(name="シナリオ一覧")
+    voice = await guild.create_category_channel(name="セッション")
+    session1 = await voice.create_category_channel(name="Room1")
+    session2 = await voice.create_category_channel(name="Room2")
+    session3 = await voice.create_category_channel(name="Room3")
+    wait = await voice.create_category_channel(name="待機")
+    talk1 = await voice.create_category_channel(name="雑談1")
+    talk2 = await voice.create_category_channel(name="雑談2")
     hitoku = await guild.create_category_channel(name="秘匿")
     use_bot = await guild.create_category_channel(name="連絡")
     closed = await guild.create_category_channel(name="終了済")
@@ -95,18 +129,26 @@ async def new_command(interaction: discord.Interaction, name:str, style:int ,men
     try:
         guild = interaction.guild
         category = discord.utils.get(guild.categories, name="連絡")
+        category2 = discord.utils.get(guild.categories, name="秘匿")
         channel = await category.create_text_channel(name)
         embed = discord.Embed(title=f"{name}",color=0x7fffd4, description=f"""# {name} \n## {style} \n\n{ccfolia_set}""", url=url)
         embed.add_field(name="KP",value=interaction.user.display_name, inline=False)
         embed.set_author(name="伝助", url=densuke)
-        contents = f"""# {name}"""
+        exclude_categories = ["連絡", "終了済", "秘匿"]
+        channel_name = name
+        result = await find_channel_link(guild, channel_name, exclude_categories)
+        if result == None:
+            result = ""
+        contents = f"""# {name} \n\n{result}"""
         for i in range(1,member+1):
             embed.add_field(name=f"HO{i}",value="未設定", inline=False)
             embed.add_field(name=f"HO{i} PC",value="未設定", inline=False)
-        await channel.send(f"{contents}",embed=embed)
+            if menu:
+                await category2.create_text_channel(f"{name}-HO{i}")
+        await channel.send(f"{contents}\n\n",embed=embed)
         await interaction.response.send_message(f"{name}を作成しました。",ephemeral=True)
     except:
-        await interaction.response.send_message("失敗しました。",ephemeral=True)
+       await interaction.response.send_message("失敗しました。",ephemeral=True)
 
 
 @tree.command(name="densuke",description="イベント情報に伝助を追加することができます。。")
@@ -154,11 +196,12 @@ async def ccfolia_command(interaction: discord.Interaction, ids:str, ccfolia:str
     except:
         await interaction.response.send_message(content="設定に失敗しました。",ephemeral=True)
 
-@tree.command(name="close",description="イベント用に作成した関連品を削除することができます。")
+@tree.command(name="close",description="イベント用に作成した関連品を削除することができます。実行は当該チャンネルのみで行うことができます。")
 @app_commands.describe(
     ids="最終行のIDを入力してください",
+    delhitoku="True:秘匿を削除 Fales:秘匿を削除しない"
 )
-async def close_command(interaction: discord.Interaction, ids:str):
+async def close_command(interaction: discord.Interaction, ids:str, delhitoku:bool):
     try:
         message = await interaction.channel.fetch_message(int(ids))
         guild = message.guild
@@ -168,14 +211,20 @@ async def close_command(interaction: discord.Interaction, ids:str):
         overwrite = discord.PermissionOverwrite(view_channel=True)
         channel = discord.utils.get(guild.channels, name=lowercase_english_words(embed.title + "-" + str(message.id)))
         category = discord.utils.get(guild.categories, name="終了済")
+        exclude_categories=["連絡","終了済","TRPGシナリオ"]
+        if delhitoku:
+            await delete_channels_containing(guild, str(ids), exclude_categories)
         await channel.set_permissions(everyone_role, overwrite=overwrite)
         await channel.edit(category=category)
         await role.delete()
         await interaction.response.send_message(content="終了済に設定しました。",ephemeral=True)
     except:
-        await interaction.response.send_message(content="終了に失敗しました。",ephemeral=True)
+        try:
+            await interaction.response.send_message(content="削除に失敗しました。",ephemeral=True)
+        except:
+            return
 
-@tree.command(name="delete",description="イベントを削除することができます。")
+@tree.command(name="delete",description="イベントを削除することができます。実行は当該チャンネルのみで行うことができます。")
 @app_commands.describe(
     ids="最終行のIDを入力してください",
 )
@@ -186,10 +235,16 @@ async def delete_command(interaction: discord.Interaction, ids:str):
         embed = message.embeds[0]
         role = discord.utils.get(guild.roles, name=embed.title + "-" + str(message.id))
         channel = discord.utils.get(guild.channels, name=lowercase_english_words(embed.title) + "-" + str(message.id))
-        await role.delete()
+        exclude_categories=["連絡","終了済","TRPGシナリオ"]
+        await delete_channels_containing(guild, str(ids), exclude_categories)
+        if role != None:
+            await role.delete()
         await channel.delete()
     except:
-        await interaction.response.send_message(content="削除に失敗しました。",ephemeral=True)
+        try:
+            await interaction.response.send_message(content="削除に失敗しました。",ephemeral=True)
+        except:
+            return
 
 @client.event
 async def on_message(message):
@@ -224,7 +279,7 @@ async def on_message(message):
             random_color = discord.Color(generate_random_color())
 
             await guild.create_role(name=embed.title + "-" + str(message.id),color=random_color)
-            channel = discord.utils.get(guild.channels, name=lowercase_english_words(embed.title))
+            channel = await find_channel_in_category(guild, "連絡", lowercase_english_words(embed.title))
             await channel.edit(name=embed.title + "-" + str(message.id))
             await message.edit(embed=embed)
 
@@ -237,24 +292,54 @@ async def on_message(message):
             for field in embed.fields:
                 if field.name == "HO1":
                     await message.add_reaction('1️⃣')
+                    channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho1"))
+                    if channel != None:
+                        await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
                 if field.name == "HO2":
                     await message.add_reaction('2️⃣')
+                    channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho2"))
+                    if channel != None:
+                        await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
                 if field.name == "HO3":
                     await message.add_reaction('3️⃣')
+                    channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho3"))
+                    if channel != None:
+                        await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
                 if field.name == "HO4":
                     await message.add_reaction('4️⃣')
+                    channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho4"))
+                    if channel != None:
+                        await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
                 if field.name == "HO5":
                     await message.add_reaction('5️⃣')
+                    channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho5"))
+                    if channel != None:
+                        await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
                 if field.name == "HO6":
                     await message.add_reaction('6️⃣')
+                    channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho6"))
+                    if channel != None:
+                        await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
                 if field.name == "HO7":
                     await message.add_reaction('7️⃣')
+                    channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho7"))
+                    if channel != None:
+                        await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
                 if field.name == "HO8":
                     await message.add_reaction('8️⃣')
+                    channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho8"))
+                    if channel != None:
+                        await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
                 if field.name == "HO9":
                     await message.add_reaction('9️⃣')
+                    channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho9"))
+                    if channel != None:
+                        await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
                 if field.name == "HO10":
                     await message.add_reaction('🔟')
+                    channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho10"))
+                    if channel != None:
+                        await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
             
 
 @client.event
