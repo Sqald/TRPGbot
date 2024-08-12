@@ -78,34 +78,39 @@ async def on_guild_join(guild):
     botting = await guild.create_category_channel(name="TRPGbot処理用")
     trpg = await guild.create_category_channel(name="TRPGシナリオ")
     trpg_text = await trpg.create_text_channel(name="シナリオ一覧")
+    trpg_text = await trpg.create_text_channel(name="タイマン")
+    trpg_text = await trpg.create_text_channel(name="2PL")
+    trpg_text = await trpg.create_text_channel(name="複数")
+    trpg_text = await trpg.create_text_channel(name="秘匿")
     voice = await guild.create_category_channel(name="セッション")
-    session1 = await voice.create_category_channel(name="Room1")
-    session2 = await voice.create_category_channel(name="Room2")
-    session3 = await voice.create_category_channel(name="Room3")
-    wait = await voice.create_category_channel(name="待機")
-    talk1 = await voice.create_category_channel(name="雑談1")
-    talk2 = await voice.create_category_channel(name="雑談2")
+    session1 = await voice.create_voice_channel(name="Room1")
+    session2 = await voice.create_voice_channel(name="Room2")
+    session3 = await voice.create_voice_channel(name="Room3")
+    wait = await voice.create_voice_channel(name="待機")
+    talk1 = await voice.create_voice_channel(name="雑談1")
+    talk2 = await voice.create_voice_channel(name="雑談2")
     hitoku = await guild.create_category_channel(name="秘匿")
     use_bot = await guild.create_category_channel(name="連絡")
     closed = await guild.create_category_channel(name="終了済")
     # カテゴリ内にテキストチャンネルを作成
     text_channel = await botting.create_text_channel(name="botinfo")
     channel = guild.get_channel(text_channel.id)
-    trpg_channel = guild.get_channel(trpg_text.id)
     categoryid = guild.get_channel(botting.id)
     #権限の変更
     everyone_role = guild.default_role
     overwrite = discord.PermissionOverwrite(read_messages=False)
     write = discord.PermissionOverwrite(send_messages=False)
     await channel.set_permissions(everyone_role, overwrite=overwrite)
-    await trpg_channel.set_permissions(everyone_role, overwrite=write)
+    await trpg.set_permissions(everyone_role, overwrite=write)
     await categoryid.set_permissions(everyone_role, overwrite=overwrite)
     await channel.send(f"[Info]\n\n{guild.name}")
 
 # スラッシュコマンドに関する動作
-@tree.command(name="test",description="テストコマンドです。")
+@tree.command(name="info",description="情報を表示します。")
 async def test_command(interaction: discord.Interaction):
-    await interaction.response.send_message("てすと！",ephemeral=False)
+    guild = interaction.guild
+    content=f"{client.user.name}-{client.user.id}-{len(client.guilds)}\n{guild.name}-{guild.id}-{guild.owner}-{guild.created_at}-{len(guild.members)}"
+    await interaction.response.send_message(f"""{content}""",ephemeral=True)
 
 @tree.command(name="new",description="新しいイベントを作成します。シナリオ説明はこのテキストに返信して追加することができます。")
 @app_commands.describe(
@@ -117,6 +122,7 @@ async def test_command(interaction: discord.Interaction):
     url="BoothなどのURLを入力してください。"
 )
 async def new_command(interaction: discord.Interaction, name:str, style:int ,menu:bool, member:int, url:str=None, densuke:str=None, ccfolia:str=None):
+    await interaction.response.defer(ephemeral=True) 
     ccfolia_set = ""
     if style == 1:
         style = "CoC6版"
@@ -144,11 +150,14 @@ async def new_command(interaction: discord.Interaction, name:str, style:int ,men
             embed.add_field(name=f"HO{i}",value="未設定", inline=False)
             embed.add_field(name=f"HO{i} PC",value="未設定", inline=False)
             if menu:
-                await category2.create_text_channel(f"{name}-HO{i}")
+                ho = await category2.create_text_channel(f"{name}-HO{i}")
+                everyone_role = guild.default_role
+                overwrite = discord.PermissionOverwrite(view_channel=False)
+                await ho.set_permissions(everyone_role, overwrite=overwrite)
         await channel.send(f"{contents}\n\n",embed=embed)
-        await interaction.response.send_message(f"{name}を作成しました。",ephemeral=True)
+        await interaction.followup.send(f"{name}を作成しました。",ephemeral=True)
     except:
-       await interaction.response.send_message("失敗しました。",ephemeral=True)
+       await interaction.followup.send("失敗しました。",ephemeral=True)
 
 
 @tree.command(name="densuke",description="イベント情報に伝助を追加することができます。。")
@@ -360,6 +369,9 @@ async def on_reaction_add(reaction, user):
                         if role is None:
                             return
                         await user.add_roles(role)
+                        channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho1-{message.id}"))
+                        if channel != None:
+                            await channel.set_permissions(user, read_messages=True)
                 await message.edit(embed=embed)
             elif reaction.emoji == '2️⃣':
                 for field in embed.fields:
@@ -370,6 +382,9 @@ async def on_reaction_add(reaction, user):
                         if role is None:
                             return
                         await user.add_roles(role)
+                        channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho2-{message.id}"))
+                        if channel != None:
+                            await channel.set_permissions(user, read_messages=True)
                 await message.edit(embed=embed)
             elif reaction.emoji == '3️⃣':
                 for field in embed.fields:
@@ -380,6 +395,9 @@ async def on_reaction_add(reaction, user):
                         if role is None:
                             return
                         await user.add_roles(role)
+                        channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho3-{message.id}"))
+                        if channel != None:
+                            await channel.set_permissions(user, read_messages=True)
                 await message.edit(embed=embed)
             elif reaction.emoji == '4️⃣':
                 for field in embed.fields:
@@ -390,6 +408,9 @@ async def on_reaction_add(reaction, user):
                         if role is None:
                             return
                         await user.add_roles(role)
+                        channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho4-{message.id}"))
+                        if channel != None:
+                            await channel.set_permissions(user, read_messages=True)
                 await message.edit(embed=embed)
             elif reaction.emoji == '5️⃣':
                 for field in embed.fields:
@@ -400,6 +421,9 @@ async def on_reaction_add(reaction, user):
                         if role is None:
                             return
                         await user.add_roles(role)
+                        channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho5-{message.id}"))
+                        if channel != None:
+                            await channel.set_permissions(user, read_messages=True)
                 await message.edit(embed=embed)
             elif reaction.emoji == '6️⃣':
                 for field in embed.fields:
@@ -410,6 +434,9 @@ async def on_reaction_add(reaction, user):
                         if role is None:
                             return
                         await user.add_roles(role)
+                        channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho6-{message.id}"))
+                        if channel != None:
+                            await channel.set_permissions(user, read_messages=True)
                 await message.edit(embed=embed)
             elif reaction.emoji == '7️⃣':
                 for field in embed.fields:
@@ -420,6 +447,9 @@ async def on_reaction_add(reaction, user):
                         if role is None:
                             return
                         await user.add_roles(role)
+                        channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho7-{message.id}"))
+                        if channel != None:
+                            await channel.set_permissions(user, read_messages=True)
                 await message.edit(embed=embed)
             elif reaction.emoji == '8️⃣':
                 for field in embed.fields:
@@ -430,6 +460,9 @@ async def on_reaction_add(reaction, user):
                         if role is None:
                             return
                         await user.add_roles(role)
+                        channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho8-{message.id}"))
+                        if channel != None:
+                            await channel.set_permissions(user, read_messages=True)
                 await message.edit(embed=embed)
             elif reaction.emoji == '9️⃣':
                 for field in embed.fields:
@@ -440,6 +473,9 @@ async def on_reaction_add(reaction, user):
                         if role is None:
                             return
                         await user.add_roles(role)
+                        channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho9-{message.id}"))
+                        if channel != None:
+                            await channel.set_permissions(user, read_messages=True)
                 await message.edit(embed=embed)
             elif reaction.emoji == '🔟':
                 for field in embed.fields:
@@ -450,6 +486,9 @@ async def on_reaction_add(reaction, user):
                         if role is None:
                             return
                         await user.add_roles(role)
+                        channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho10-{message.id}"))
+                        if channel != None:
+                            await channel.set_permissions(user, read_messages=True)
                 await message.edit(embed=embed)
 
         if all(x.value != "未設定" for x in embed.fields[1::2]):
