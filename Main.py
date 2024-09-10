@@ -79,14 +79,6 @@ async def find_channel_link(guild, name, exclude_categories):
                     return channel.mention
     return None
 
-async def find_channel_in_category(guild, category_name, channel_name):
-    for category in guild.categories:
-        if category.name == category_name:
-            for channel in category.channels:
-                if channel.name == channel_name:
-                    return channel
-    return None
-
 async def delete_channels_containing(guild, name_id, exclude_categories):
     try:
         for category in guild.categories:
@@ -220,56 +212,26 @@ async def new_command(interaction: discord.Interaction, name:str, style:int ,men
         embed.add_field(name="ID",value=message.id)
         await message.edit(embed=embed)
         for field in embed.fields:
-            if field.name == "HO1":
-                await message.add_reaction('1️⃣')
-                channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho1"))
-                if channel != None:
-                    await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
-            if field.name == "HO2":
-                await message.add_reaction('2️⃣')
-                channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho2"))
-                if channel != None:
-                    await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
-            if field.name == "HO3":
-                await message.add_reaction('3️⃣')
-                channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho3"))
-                if channel != None:
-                    await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
-            if field.name == "HO4":
-                await message.add_reaction('4️⃣')
-                channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho4"))
-                if channel != None:
-                    await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
-            if field.name == "HO5":
-                await message.add_reaction('5️⃣')
-                channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho5"))
-                if channel != None:
-                    await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
-            if field.name == "HO6":
-                await message.add_reaction('6️⃣')
-                channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho6"))
-                if channel != None:
-                    await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
-            if field.name == "HO7":
-                await message.add_reaction('7️⃣')
-                channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho7"))
-                if channel != None:
-                    await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
-            if field.name == "HO8":
-                await message.add_reaction('8️⃣')
-                channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho8"))
-                if channel != None:
-                    await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
-            if field.name == "HO9":
-                await message.add_reaction('9️⃣')
-                channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho9"))
-                if channel != None:
-                    await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
-            if field.name == "HO10":
-                await message.add_reaction('🔟')
-                channel = await find_channel_in_category(guild, "秘匿", lowercase_english_words(f"{embed.title}-ho10"))
-                if channel != None:
-                    await channel.edit(name=f"{embed.title}-{field.name}-{message.id}")
+                if field.name == "HO1":
+                    await message.add_reaction('1️⃣')
+                if field.name == "HO2":
+                    await message.add_reaction('2️⃣')
+                if field.name == "HO3":
+                    await message.add_reaction('3️⃣')
+                if field.name == "HO4":
+                    await message.add_reaction('4️⃣')
+                if field.name == "HO5":
+                    await message.add_reaction('5️⃣')
+                if field.name == "HO6":
+                    await message.add_reaction('6️⃣')
+                if field.name == "HO7":
+                    await message.add_reaction('7️⃣')
+                if field.name == "HO8":
+                    await message.add_reaction('8️⃣')
+                if field.name == "HO9":
+                    await message.add_reaction('9️⃣')
+                if field.name == "HO10":
+                    await message.add_reaction('🔟')
 
         await interaction.followup.send(f"{name}を作成しました。",ephemeral=True)
     except:
@@ -327,7 +289,6 @@ async def ccfolia_command(interaction: discord.Interaction, ids:str, ccfolia:str
 )
 async def close_command(interaction: discord.Interaction, delhitoku:bool):
     try:
-        message = interaction.message
         guild = interaction.guild
         curs.execute(f"USE {DBName}")
         curs.execute(f"SELECT role_id FROM messageDB WHERE channel_id = {interaction.channel.id} AND KP_id = {interaction.user.id} AND guild_id = {guild.id}")
@@ -461,35 +422,6 @@ async def on_message(message):
                                 embed.set_field_at(index + 1, name=embed.fields[index + 1].name, value=message.content+"\n \n", inline=False)
                                 await original_message.edit(embed=embed)
                 await message.delete()
-                
-    # HO用リアクション関連
-    if message.author == client.user:
-        if message.embeds:
-            embed = message.embeds[0]
-            embed.add_field(name="ID",value=message.id)
-            await message.edit(embed=embed)
-            for field in embed.fields:
-                if field.name == "HO1":
-                    await message.add_reaction('1️⃣')
-                if field.name == "HO2":
-                    await message.add_reaction('2️⃣')
-                if field.name == "HO3":
-                    await message.add_reaction('3️⃣')
-                if field.name == "HO4":
-                    await message.add_reaction('4️⃣')
-                if field.name == "HO5":
-                    await message.add_reaction('5️⃣')
-                if field.name == "HO6":
-                    await message.add_reaction('6️⃣')
-                if field.name == "HO7":
-                    await message.add_reaction('7️⃣')
-                if field.name == "HO8":
-                    await message.add_reaction('8️⃣')
-                if field.name == "HO9":
-                    await message.add_reaction('9️⃣')
-                if field.name == "HO10":
-                    await message.add_reaction('🔟')
-            
 
 @client.event
 async def on_raw_reaction_add(reaction):
