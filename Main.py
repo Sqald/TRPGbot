@@ -113,6 +113,7 @@ async def on_guild_join(guild):
     dice = await guild.create_category_channel(name="ダイス")
     dices = await dice.create_text_channel(name="ダイス")
     # カテゴリ内にテキストチャンネルを作成
+    
     #権限の変更
     everyone_role = guild.default_role
     write = discord.PermissionOverwrite(send_messages=False)
