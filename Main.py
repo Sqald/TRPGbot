@@ -505,7 +505,6 @@ async def on_raw_reaction_add(reaction):
             embed = message.embeds[0]
             if reaction.emoji.name == '1️⃣':
                 for field in embed.fields:
-                    print(field.name)
                     if field.name == "HO1":
                         embed.set_field_at(1, name="HO1", value=user_name)
                         await message.edit(embed=embed)
