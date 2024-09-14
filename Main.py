@@ -113,7 +113,7 @@ async def on_guild_join(guild):
     dice = await guild.create_category_channel(name="ダイス")
     dices = await dice.create_text_channel(name="ダイス")
     # カテゴリ内にテキストチャンネルを作成
-    
+
     #権限の変更
     everyone_role = guild.default_role
     write = discord.PermissionOverwrite(send_messages=False)
@@ -191,7 +191,6 @@ async def new_command(interaction: discord.Interaction, name:str, style:int ,men
             embed.add_field(name=f"HO{i}",value="未設定", inline=False)
             embed.add_field(name=f"HO{i} PC",value="未設定", inline=False)
             await message.edit(embed=embed)
-            print(i)
             if menu:
                 ho = await category2.create_text_channel(f"{name}-HO{i}")
                 try:
@@ -241,12 +240,15 @@ async def new_command(interaction: discord.Interaction, name:str, style:int ,men
 
 @tree.command(name="densuke",description="イベント情報に伝助を追加することができます。。")
 @app_commands.describe(
-    ids="最終行のIDを入力してください",
     densuke="伝助のURLを入力してください。"
 )
-async def densuke_command(interaction: discord.Interaction, ids:str, densuke:str):
+async def densuke_command(interaction: discord.Interaction, densuke:str):
     try:
-        message = await interaction.channel.fetch_message(int(ids))
+        guild = interaction.guild
+        curs.execute(f"USE {DBName}")
+        curs.execute(f"SELECT message_id FROM messageDB WHERE channel_id = {interaction.channel.id} AND KP_id = {interaction.user.id} AND guild_id = {guild.id}")
+        message_id = curs.fetchone()
+        message = await interaction.channel.fetch_message(message_id[0])
         embed = message.embeds[0]
         embed.set_author(name="伝助", url=densuke)
         await message.edit(embed=embed)
@@ -256,12 +258,15 @@ async def densuke_command(interaction: discord.Interaction, ids:str, densuke:str
 
 @tree.command(name="booth",description="イベント情報にシナリオの情報を追加することができます。")
 @app_commands.describe(
-    ids="最終行のIDを入力してください",
     url="BoothのURLを入力してください。"
 )
-async def booth_command(interaction: discord.Interaction, ids:str, url:str):
+async def booth_command(interaction: discord.Interaction, url:str):
     try:
-        message = await interaction.channel.fetch_message(int(ids))
+        guild = interaction.guild
+        curs.execute(f"USE {DBName}")
+        curs.execute(f"SELECT message_id FROM messageDB WHERE channel_id = {interaction.channel.id} AND KP_id = {interaction.user.id} AND guild_id = {guild.id}")
+        message_id = curs.fetchone()
+        message = await interaction.channel.fetch_message(message_id[0])
         embed = message.embeds[0]
         embed.url = url
         await message.edit(embed=embed)
@@ -271,12 +276,15 @@ async def booth_command(interaction: discord.Interaction, ids:str, url:str):
 
 @tree.command(name="ccfolia",description="イベント情報にCCFOLIAを追加することができます。")
 @app_commands.describe(
-    ids="最終行のIDを入力してください",
     ccfolia="CCFOLIAのURLを入力してください。"
 )
-async def ccfolia_command(interaction: discord.Interaction, ids:str, ccfolia:str):
+async def ccfolia_command(interaction: discord.Interaction, ccfolia:str):
     try:
-        message = await interaction.channel.fetch_message(int(ids))
+        guild = interaction.guild
+        curs.execute(f"USE {DBName}")
+        curs.execute(f"SELECT message_id FROM messageDB WHERE channel_id = {interaction.channel.id} AND KP_id = {interaction.user.id} AND guild_id = {guild.id}")
+        message_id = curs.fetchone()
+        message = await interaction.channel.fetch_message(message_id[0])
         embed = message.embeds[0]
         embed.description = embed.description + f"\n\n[CCFOLIA]({ccfolia})"
         await message.edit(embed=embed)
@@ -286,7 +294,7 @@ async def ccfolia_command(interaction: discord.Interaction, ids:str, ccfolia:str
 
 @tree.command(name="close",description="イベント用に作成した関連品を削除することができます。実行は当該チャンネルのみで行うことができます。")
 @app_commands.describe(
-    delhitoku="True:秘匿を削除 Fales:秘匿を削除しない"
+    delhitoku="True:秘匿を削除 False:秘匿を削除しない"
 )
 async def close_command(interaction: discord.Interaction, delhitoku:bool):
     try:
@@ -323,16 +331,15 @@ async def close_command(interaction: discord.Interaction, delhitoku:bool):
 @tree.command(name="delete",description="イベントを削除することができます。実行は当該チャンネルのみで行うことができます。")
 async def delete_command(interaction: discord.Interaction):
     try:
-        message = interaction.message
         guild = interaction.guild
         curs.execute(f"USE {DBName}")
-        curs.execute(f"SELECT role_id FROM messageDB WHERE channel_id = {interaction.channel.id} AND KP_id = {interaction.user.id} AND guild_id = {guild.id}")
+        curs.execute(f"SELECT role_id FROM messageDB WHERE channel_id = {interaction.channel.id} AND KP_id = {interaction.user.id} AND guild_id = {guild.id} ORDER BY id")
         role_id = curs.fetchone()
         role = guild.get_role(role_id[0])
         channel = interaction.channel
         try:
             curs.execute(f"USE {DBName}")
-            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE channel_id = {interaction.channel.id} AND guild_id = {guild.id}")
+            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE channel_id = {interaction.channel.id} AND guild_id = {guild.id} ORDER BY id")
             hitoku_id = curs.fetchall()
             for i in hitoku_id:
                 hitoku_channel = guild.get_channel(i[0])
@@ -346,7 +353,7 @@ async def delete_command(interaction: discord.Interaction):
                 await role.delete()
         except:
             pass
-        curs.execute(f"DELETE FROM messageDB WHERE channel_id = {interaction.channel.id} AND KP_id = {interaction.user.id} AND guild_id = {guild.id}")
+        curs.execute(f"DELETE FROM messageDB WHERE channel_id = {interaction.channel.id} AND KP_id = {interaction.user.id} AND guild_id = {guild.id} ORDER BY id")
     except:
         try:
             await interaction.response.send_message(content="削除に失敗しました。",ephemeral=True)
@@ -364,17 +371,14 @@ async def debug_command(interaction: discord.Interaction, select:str):
     category = channel.category
     if select == "role":
         for role in guild.roles :
-            print(role.name)
             if role.is_default():
                 continue  # デフォルトロールは削除できない
             elif role.name == env_name.group().replace('\'', ''):
                 continue
             await role.delete()
-        await interaction.followup.send(f"削除しました。",ephemeral=True)
     elif select == "channel":
         for i in category.channels:
             await i.delete()
-        await interaction.followup.send(f"削除しました。",ephemeral=True)
 
 @tree.command(name="roll",description="ダイスを振ります。")
 @app_commands.describe(
@@ -443,7 +447,7 @@ async def on_raw_reaction_add(reaction):
                         await message.edit(embed=embed)
                         try:
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             role_id = curs.fetchall()
                             role = guild.get_role(role_id[0])
                             if role is None:
@@ -451,7 +455,7 @@ async def on_raw_reaction_add(reaction):
                             else:
                                 await user.add_roles(role)
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             hitoku_id = curs.fetchall()
                             hitoku_channel = guild.get_channel(hitoku_id[0])
                             if hitoku_channel != None:
@@ -465,7 +469,7 @@ async def on_raw_reaction_add(reaction):
                         await message.edit(embed=embed)
                         try:
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             role_id = curs.fetchall()
                             role = guild.get_role(role_id[0])
                             if role is None:
@@ -473,7 +477,7 @@ async def on_raw_reaction_add(reaction):
                             else:
                                 await user.add_roles(role)
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             hitoku_id = curs.fetchall()
                             hitoku_channel = guild.get_channel(hitoku_id[0])
                             if hitoku_channel != None:
@@ -487,7 +491,7 @@ async def on_raw_reaction_add(reaction):
                         await message.edit(embed=embed)
                         try:
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             role_id = curs.fetchall()
                             role = guild.get_role(role_id[0])
                             if role is None:
@@ -495,7 +499,7 @@ async def on_raw_reaction_add(reaction):
                             else:
                                 await user.add_roles(role)
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             hitoku_id = curs.fetchall()
                             hitoku_channel = guild.get_channel(hitoku_id[0])
                             if hitoku_channel != None:
@@ -509,7 +513,7 @@ async def on_raw_reaction_add(reaction):
                         await message.edit(embed=embed)
                         try:
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             role_id = curs.fetchall()
                             role = guild.get_role(role_id[0])
                             if role is None:
@@ -517,7 +521,7 @@ async def on_raw_reaction_add(reaction):
                             else:
                                 await user.add_roles(role)
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             hitoku_id = curs.fetchall()
                             hitoku_channel = guild.get_channel(hitoku_id[0])
                             if hitoku_channel != None:
@@ -531,7 +535,7 @@ async def on_raw_reaction_add(reaction):
                         await message.edit(embed=embed)
                         try:
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             role_id = curs.fetchall()
                             role = guild.get_role(role_id[0])
                             if role is None:
@@ -539,7 +543,7 @@ async def on_raw_reaction_add(reaction):
                             else:
                                 await user.add_roles(role)
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             hitoku_id = curs.fetchall()
                             hitoku_channel = guild.get_channel(hitoku_id[0])
                             if hitoku_channel != None:
@@ -553,7 +557,7 @@ async def on_raw_reaction_add(reaction):
                         await message.edit(embed=embed)
                         try:
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             role_id = curs.fetchall()
                             role = guild.get_role(role_id[0])
                             if role is None:
@@ -561,7 +565,7 @@ async def on_raw_reaction_add(reaction):
                             else:
                                 await user.add_roles(role)
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             hitoku_id = curs.fetchall()
                             hitoku_channel = guild.get_channel(hitoku_id[0])
                             if hitoku_channel != None:
@@ -575,7 +579,7 @@ async def on_raw_reaction_add(reaction):
                         await message.edit(embed=embed)
                         try:
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             role_id = curs.fetchall()
                             role = guild.get_role(role_id[0])
                             if role is None:
@@ -583,7 +587,7 @@ async def on_raw_reaction_add(reaction):
                             else:
                                 await user.add_roles(role)
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             hitoku_id = curs.fetchall()
                             hitoku_channel = guild.get_channel(hitoku_id[0])
                             if hitoku_channel != None:
@@ -597,7 +601,7 @@ async def on_raw_reaction_add(reaction):
                         await message.edit(embed=embed)
                         try:
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             role_id = curs.fetchall()
                             role = guild.get_role(role_id[0])
                             if role is None:
@@ -605,7 +609,7 @@ async def on_raw_reaction_add(reaction):
                             else:
                                 await user.add_roles(role)
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             hitoku_id = curs.fetchall()
                             hitoku_channel = guild.get_channel(hitoku_id[0])
                             if hitoku_channel != None:
@@ -619,7 +623,7 @@ async def on_raw_reaction_add(reaction):
                         await message.edit(embed=embed)
                         try:
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             role_id = curs.fetchall()
                             role = guild.get_role(role_id[0])
                             if role is None:
@@ -627,7 +631,7 @@ async def on_raw_reaction_add(reaction):
                             else:
                                 await user.add_roles(role)
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             hitoku_id = curs.fetchall()
                             hitoku_channel = guild.get_channel(hitoku_id[0])
                             if hitoku_channel != None:
@@ -641,7 +645,7 @@ async def on_raw_reaction_add(reaction):
                         await message.edit(embed=embed)
                         try:
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT role_id FROM messageDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             role_id = curs.fetchall()
                             role = guild.get_role(role_id[0])
                             if role is None:
@@ -649,7 +653,7 @@ async def on_raw_reaction_add(reaction):
                             else:
                                 await user.add_roles(role)
                             curs.execute(f"USE {DBName}")
-                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id}")
+                            curs.execute(f"SELECT secret_channel_id FROM secretDB WHERE message_id = {message.id} AND guild_id = {guild.id} ORDER BY id")
                             hitoku_id = curs.fetchall()
                             hitoku_channel = guild.get_channel(hitoku_id[0])
                             if hitoku_channel != None:
