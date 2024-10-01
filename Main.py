@@ -39,7 +39,6 @@ DBPassword = re.search('\'.*.\'',DBPassword_name[0]).group().replace('\'', '')
 DBName_name = [s for s in env if re.match('.*DBName.*', s)]
 DBName = re.search('\'.*.\'',DBName_name[0]).group().replace('\'', '')
 
-print(DBHost,DBName,DBPassword,DBUser)
 try:
     conn = mysql.connector.connect(host=DBHost ,port=int(DBPort) ,user=DBUser, password=DBPassword)
     curs = conn.cursor()
