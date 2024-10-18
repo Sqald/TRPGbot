@@ -382,7 +382,7 @@ async def debug_command(interaction: discord.Interaction, ho_num:int):
             curs.execute(f"USE {DBName}")
             curs.execute('insert into secretchannelDB (HO_num,guild_id,category_id,ho_channel_id) values (%s, %s, %s, %s)', list_id)
             conn.commit()
-            await interaction.followup.send(curs.fetchall(), ephemeral=True)
+            await interaction.followup.send("セットしました。", ephemeral=True)
         except:
             await interaction.followup.send("データベース操作に失敗しました。", ephemeral=True)
 
