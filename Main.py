@@ -128,6 +128,7 @@ async def new_command(interaction: discord.Interaction, name:str, menu:bool, mem
 
             list_id= [guild_id,category_id,channel_id,message_id,role_id,name,kp_id,member]
 
+            conn.ping(reconnect=True)
             curs.execute(f"USE {DBName}")
             curs.execute('insert into messageDB (guild_id,category_id,channel_id,message_id,role_id,Name,KP_id,Count) values (%s, %s, %s, %s, %s, %s, %s, %s)', list_id)
             conn.commit()
@@ -197,6 +198,7 @@ async def densuke_command(interaction: discord.Interaction, densuke:str):
     try:
         guild = interaction.guild
         channel = interaction.channel
+        conn.ping(reconnect=True)
         curs.execute(f"USE {DBName}")
         curs.execute(f"SELECT message_id FROM messageDB WHERE channel_id = {interaction.channel.id} AND KP_id = {interaction.user.id} AND guild_id = {guild.id} ORDER BY id")
         message = channel.fetch_message(curs.fetchone()[0])
@@ -215,6 +217,7 @@ async def booth_command(interaction: discord.Interaction, url:str):
     try:
         guild = interaction.guild
         channel = interaction.channel
+        conn.ping(reconnect=True)
         curs.execute(f"USE {DBName}")
         curs.execute(f"SELECT message_id FROM messageDB WHERE channel_id = {interaction.channel.id} AND KP_id = {interaction.user.id} AND guild_id = {guild.id} ORDER BY id")
         message = await channel.fetch_message(curs.fetchone()[0])
@@ -233,6 +236,7 @@ async def ccfolia_command(interaction: discord.Interaction, ccfolia:str):
     try:
         guild = interaction.guild
         channel = interaction.channel
+        conn.ping(reconnect=True)
         curs.execute(f"USE {DBName}")
         curs.execute(f"SELECT message_id FROM messageDB WHERE channel_id = {interaction.channel.id} AND KP_id = {interaction.user.id} AND guild_id = {guild.id} ORDER BY id")
         message_id = curs.fetchone()
@@ -251,6 +255,7 @@ async def ccfolia_command(interaction: discord.Interaction, ccfolia:str):
 async def close_command(interaction: discord.Interaction, delhitoku:bool):
     try:
         guild = interaction.guild
+        conn.ping(reconnect=True)
         curs.execute(f"USE {DBName}")
         curs.execute(f"SELECT role_id FROM messageDB WHERE channel_id = {interaction.channel.id} AND KP_id = {interaction.user.id} AND guild_id = {guild.id}")
         role_id = curs.fetchone()
@@ -293,6 +298,7 @@ async def close_command(interaction: discord.Interaction, delhitoku:bool):
 async def delete_command(interaction: discord.Interaction):
     try:
         guild = interaction.guild
+        conn.ping(reconnect=True)
         curs.execute(f"USE {DBName}")
         curs.execute(f"SELECT role_id FROM messageDB WHERE channel_id = {interaction.channel.id} AND KP_id = {interaction.user.id} AND guild_id = {guild.id} ORDER BY id")
         role_id = curs.fetchone()
@@ -362,6 +368,7 @@ async def debug_command(interaction: discord.Interaction, select:str):
 async def debug_command(interaction: discord.Interaction, sql:str):
     if interaction.user.guild_permissions.administrator:
         await interaction.response.defer(ephemeral=True) 
+        conn.ping(reconnect=True)
         curs.execute(f"USE {DBName}")
         curs.execute(f"{sql}")
         await interaction.followup.send(curs.fetchall(), ephemeral=True)
@@ -379,6 +386,7 @@ async def debug_command(interaction: discord.Interaction, ho_num:int):
         ho_channel = interaction.channel
         try:
             list_id = [ho_num,guild.id,category.id,ho_channel.id]
+            conn.ping(reconnect=True)
             curs.execute(f"USE {DBName}")
             curs.execute('insert into secretchannelDB (HO_num,guild_id,category_id,ho_channel_id) values (%s, %s, %s, %s)', list_id)
             conn.commit()
@@ -423,16 +431,13 @@ async def on_message(message):
                     await message.delete()
                 # 指定された名前のフィールドを探す
                 embed = original_message.embeds[0]
-                if original_message.embeds[0].fields[0].value == message.author.display_name:
-                    return
-                else:
-                    for index, field in enumerate(embed.fields):
-                        if field.value == message.author.display_name:
-                            # 次のフィールドが存在する場合
-                            if index + 1 < len(embed.fields):
-                                # 次のフィールドの値に返信内容を追加
-                                embed.set_field_at(index + 1, name=embed.fields[index + 1].name, value=message.content+"\n \n", inline=False)
-                                await original_message.edit(embed=embed)
+                for index, field in enumerate(embed.fields):
+                    if field.value == message.author.display_name and field.name!="KP":
+                        # 次のフィールドが存在する場合
+                        if index + 1 < len(embed.fields):
+                            # 次のフィールドの値に返信内容を追加
+                            embed.set_field_at(index + 1, name=embed.fields[index + 1].name, value=message.content+"\n \n", inline=False)
+                            await original_message.edit(embed=embed)
                 await message.delete()
 
 @client.event
@@ -446,6 +451,7 @@ async def on_raw_reaction_add(reaction):
         pass
     else :
         if message.embeds[0]:
+            conn.ping(reconnect=True)
             embed = message.embeds[0]
             if reaction.emoji.name == '1️⃣':
                 for field in embed.fields:
@@ -748,6 +754,7 @@ async def on_raw_reaction_remove(reaction):
     if user.name == env_name.group().replace('\'', ''):
         pass
     else :
+        conn.ping(reconnect=True)
         if message.embeds[0]:
             embed = message.embeds[0]
             if reaction.emoji.name == '1️⃣':
